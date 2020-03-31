@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import androidx.exifinterface.media.ExifInterface;
 import android.util.Base64;
+import android.util.Log;
+
 
 import org.reactnative.camera.RNCameraViewHelper;
 import org.reactnative.camera.utils.RNFileUtils;
@@ -33,6 +35,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
     private File mCacheDirectory;
     private int mDeviceOrientation;
     private PictureSavedDelegate mPictureSavedDelegate;
+    private static final float RATIO = (float)Resources.getSystem().getDisplayMetrics().widthPixels/(float)Resources.getSystem().getDisplayMetrics().heightPixels;
 
     public ResolveTakenPictureAsyncTask(byte[] imageData, Promise promise, ReadableMap options, File cacheDirectory, int deviceOrientation, PictureSavedDelegate delegate) {
         mPromise = promise;
@@ -77,6 +80,8 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             // and this behaves more like the iOS version.
             // We will load all data lazily only when needed.
 
+            //Log.d("TEST", "H/W: "+RATIO);
+
             // this should not incurr in any overhead if not read/used
             inputStream = new ByteArrayInputStream(mImageData);
 
@@ -96,8 +101,15 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                 }
             }
 
-            if (mOptions.hasKey("width")) {
+            if(mOptions.hasKey("crop")){
+                //Log.d("TEST", "Croping begin");
                 loadBitmap();
+                mBitmap = cropBitmap(mBitmap);
+                //Log.d("TEST", "Croping end");
+            }
+
+            if (mOptions.hasKey("width")) {
+                loadBitmap();   
                 mBitmap = resizeBitmap(mBitmap, mOptions.getInt("width"));
             }
 
@@ -181,6 +193,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
 
                     // Prepare file output
                     File imageFile = new File(RNFileUtils.getOutputFilePath(mCacheDirectory, ".jpg"));
+                    Log.d("TEST", "file "+RNFileUtils.getOutputFilePath(mCacheDirectory, ".jpg"));
                     imageFile.createNewFile();
                     FileOutputStream fOut = new FileOutputStream(imageFile);
 
@@ -291,6 +304,17 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
         Matrix matrix = new Matrix();
         matrix.preScale(-1.0f, 1.0f);
         return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
+
+    private Bitmap cropBitmap(Bitmap source) {
+        int width = (int)((float)source.getHeight() * RATIO);
+        int height = source.getHeight();
+        int cropStart = source.getWidth()/2 - width/2;
+        // Log.d("TEST", "width: "+width);
+        // Log.d("TEST", "height: "+height);
+        // Log.d("TEST", "cropStart: "+cropStart);
+        return Bitmap.createBitmap(source, cropStart,0,width, height);
     }
 
     // Get rotation degrees from Exif orientation enum
