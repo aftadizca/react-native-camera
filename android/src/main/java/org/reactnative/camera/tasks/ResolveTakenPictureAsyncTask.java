@@ -101,7 +101,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                 }
             }
 
-            if(mOptions.hasKey("crop")){
+            if(mOptions.hasKey("crop") && mOptions.getBoolean("crop")){
                 //Log.d("TEST", "Croping begin");
                 loadBitmap();
                 mBitmap = cropBitmap(mBitmap);
